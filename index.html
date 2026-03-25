@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Барбершоп — Запись на стрижку</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0c0a; --surface: #1a1612; --card: #221e19; --border: #332e27;
+    --gold: #c9a84c; --gold-light: #e8c97a; --gold-dim: rgba(201,168,76,0.15);
+    --red: #c94c4c; --green: #4cac6e; --text: #f0ebe3; --muted: #7a7068; --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Unbounded', sans-serif; font-size: 1.1rem; font-weight: 900; color: var(--gold); }
+  .logo span { color: var(--text); font-weight: 400; }
+  .admin-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Mulish', sans-serif; font-size: 0.8rem; transition: all 0.2s; }
+  .admin-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  #vacationBanner { display: none; background: linear-gradient(90deg,#2a1a0a,#1a120a); border-bottom: 2px solid var(--gold); padding: 16px 24px; text-align: center; }
+  .vac-title { font-family: 'Unbounded', sans-serif; font-size: 1rem; color: var(--gold); margin-bottom: 4px; }
+  .vac-sub { color: var(--muted); font-size: 0.85rem; }
+
+  main { max-width: 720px; margin: 0 auto; padding: 28px 16px 0; }
+  .page-title { font-family: 'Unbounded', sans-serif; font-size: 1.5rem; font-weight: 900; color: var(--gold); margin-bottom: 6px; }
+  .page-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+
+  .day-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .day-tab { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; text-align: center; transition: all 0.18s; user-select: none; }
+  .day-tab:hover { border-color: var(--gold); }
+  .day-tab.active { border-color: var(--gold); background: var(--gold-dim); }
+  .day-tab__label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px; }
+  .day-tab.active .day-tab__label { color: var(--gold); }
+  .day-tab__date { font-family: 'Unbounded', sans-serif; font-size: 0.85rem; color: var(--text); }
+
+  .slots-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media(min-width:480px){ .slots-grid { grid-template-columns: 1fr 1fr 1fr; } }
+  .slot { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.18s; user-select: none; }
+  .slot:hover:not(.slot--booked):not(.slot--blocked) { border-color: var(--gold); background: var(--gold-dim); transform: translateY(-1px); }
+  .slot--booked { opacity: 0.55; cursor: not-allowed; border-color: transparent; }
+  .slot--blocked { opacity: 0.4; cursor: not-allowed; border-color: transparent; background: #1a1010; }
+  .slot--selected { border-color: var(--gold); background: var(--gold-dim); box-shadow: 0 0 0 2px var(--gold); }
+  .slot__time { font-family: 'Unbounded', sans-serif; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+  .slot--booked .slot__time, .slot--blocked .slot__time { color: var(--muted); }
+  .slot__badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
+  .badge--free { background: rgba(76,172,110,0.15); color: var(--green); }
+  .badge--booked { background: rgba(201,76,76,0.12); color: var(--red); }
+  .badge--blocked { background: rgba(100,90,80,0.2); color: var(--muted); }
+
+  #bookingSection { display: none; margin-top: 24px; background: var(--card); border: 1px solid var(--gold); border-radius: var(--radius); padding: 24px; animation: fadeUp 0.3s ease; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .form-title { font-family: 'Unbounded', sans-serif; font-size: 1rem; color: var(--gold); margin-bottom: 18px; }
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+  input[type=text] { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text); font-family: 'Mulish', sans-serif; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+  input[type=text]:focus { border-color: var(--gold); }
+  .submit-btn { width: 100%; background: var(--gold); color: #0e0c0a; border: none; border-radius: 8px; padding: 13px; font-family: 'Unbounded', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 6px; transition: background 0.2s, transform 0.1s; }
+  .submit-btn:hover { background: var(--gold-light); transform: translateY(-1px); }
+  .cancel-link { display: block; text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 10px; cursor: pointer; text-decoration: underline; }
+  .cancel-link:hover { color: var(--text); }
+
+  .phone-row { display: flex; gap: 8px; }
+  .country-select-wrap { position: relative; flex-shrink: 0; }
+  .country-trigger { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 10px; cursor: pointer; white-space: nowrap; transition: border-color 0.2s; user-select: none; }
+  .country-trigger:hover { border-color: var(--gold); }
+  .country-trigger .flag { font-size: 1.1rem; }
+  .country-trigger .code { font-family: 'Unbounded', sans-serif; font-size: 0.75rem; color: var(--gold); }
+  .country-trigger .arrow { color: var(--muted); font-size: 0.65rem; }
+  .country-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 260px; max-height: 260px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.6); flex-direction: column; }
+  .country-dropdown.open { display: flex; }
+  .country-search { padding: 10px 12px; background: var(--surface); border: none; border-bottom: 1px solid var(--border); outline: none; color: var(--text); font-family: 'Mulish', sans-serif; font-size: 0.85rem; width: 100%; }
+  .country-list { overflow-y: auto; flex: 1; }
+  .country-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; font-size: 0.88rem; transition: background 0.12s; }
+  .country-item:hover { background: var(--gold-dim); }
+  .ci-flag { font-size: 1.1rem; }
+  .ci-name { flex: 1; color: var(--text); }
+  .ci-code { color: var(--gold); font-size: 0.78rem; font-family: 'Unbounded', sans-serif; }
+  .phone-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text); font-family: 'Mulish', sans-serif; font-size: 1rem; outline: none; transition: border-color 0.2s; min-width: 0; }
+  .phone-input:focus { border-color: var(--gold); }
+
+  #successMsg { display: none; margin-top: 20px; background: rgba(76,172,110,0.1); border: 1px solid var(--green); border-radius: var(--radius); padding: 20px; text-align: center; animation: fadeUp 0.3s ease; }
+  .s-icon { font-size: 2rem; margin-bottom: 8px; }
+  .s-title { color: var(--green); font-family: 'Unbounded', sans-serif; font-size: 0.9rem; margin-bottom: 4px; }
+  .s-sub { color: var(--muted); font-size: 0.82rem; }
+
+  #notifCard { display: none; margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; animation: fadeUp 0.3s ease; }
+  .notif-row { display: flex; align-items: center; gap: 14px; }
+  .notif-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .notif-text h4 { font-family: 'Unbounded', sans-serif; font-size: 0.82rem; color: var(--text); margin-bottom: 4px; }
+  .notif-text p { color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+  .notif-btns { display: flex; gap: 8px; margin-top: 12px; }
+  .notif-allow { flex:1; background: var(--gold); color: #0e0c0a; border: none; border-radius: 8px; padding: 10px; font-family: 'Unbounded', sans-serif; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .notif-allow:hover { background: var(--gold-light); }
+  .notif-deny { flex:1; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: 'Mulish', sans-serif; font-size: 0.8rem; cursor: pointer; }
+  .notif-deny:hover { border-color: var(--red); color: var(--red); }
+  .notif-warn { margin-top: 10px; background: rgba(201,76,76,0.08); border: 1px solid rgba(201,76,76,0.3); border-radius: 8px; padding: 10px 14px; color: var(--red); font-size: 0.8rem; display: none; }
+
+  .pub-contacts { max-width: 720px; margin: 28px auto 40px; padding: 0 16px; }
+  .pub-contacts-inner { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .contacts-label { font-family: 'Unbounded', sans-serif; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 14px; }
+  .contact-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; transition: border-color 0.2s; }
+  .contact-row:last-child { margin-bottom: 0; }
+  .contact-row:hover { border-color: var(--gold); }
+  .contact-link { display: flex; align-items: center; gap: 12px; text-decoration: none; flex: 1; min-width: 0; }
+  .contact-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .contact-info-sub { font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+  .contact-info-val { color: var(--text); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .copy-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 0.75rem; transition: all 0.18s; flex-shrink: 0; font-family: 'Mulish', sans-serif; white-space: nowrap; }
+  .copy-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+  #adminOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; overflow-y: auto; }
+  .admin-panel { max-width: 700px; margin: 30px auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .admin-header { background: var(--card); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .admin-header h2 { font-family: 'Unbounded', sans-serif; font-size: 0.9rem; color: var(--gold); }
+  .close-admin { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; }
+  .close-admin:hover { color: var(--text); }
+  .admin-body { padding: 20px; }
+  .admin-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .admin-section h3 { font-family: 'Unbounded', sans-serif; font-size: 0.78rem; color: var(--gold); margin-bottom: 14px; letter-spacing: 0.05em; }
+
+  .admin-day-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .admin-day-tab { flex:1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; font-family: 'Unbounded', sans-serif; font-size: 0.72rem; color: var(--muted); transition: all 0.18s; }
+  .admin-day-tab:hover { border-color: var(--gold); color: var(--gold-light); }
+  .admin-day-tab.active { border-color: var(--gold); background: var(--gold-dim); color: var(--gold); }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-row span { font-size: 0.9rem; }
+  .toggle { width: 48px; height: 26px; background: var(--border); border-radius: 13px; cursor: pointer; position: relative; transition: background 0.2s; border: none; }
+  .toggle.on { background: var(--gold); }
+  .toggle::after { content:''; position:absolute; width:20px; height:20px; background:white; border-radius:50%; top:3px; left:3px; transition:transform 0.2s; }
+  .toggle.on::after { transform: translateX(22px); }
+
+  .block-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+  @media(min-width:480px){ .block-grid { grid-template-columns: repeat(4,1fr); } }
+  .block-slot { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; font-size: 0.78rem; font-family: 'Unbounded', sans-serif; color: var(--muted); transition: all 0.15s; }
+  .block-slot:hover { border-color: var(--gold); color: var(--gold-light); }
+  .block-slot.blocked { background: rgba(201,76,76,0.12); border-color: var(--red); color: var(--red); }
+
+  .booking-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .booking-item.confirmed { border-color: rgba(76,172,110,0.4); }
+  .booking-item.cancelled { opacity: 0.4; }
+  .bi-info { flex: 1; }
+  .bi-day { font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+  .bi-time { font-family: 'Unbounded', sans-serif; font-size: 0.85rem; color: var(--gold); margin-bottom: 3px; }
+  .bi-name { font-size: 0.88rem; color: var(--text); }
+  .bi-phone { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .bi-actions { display: flex; gap: 6px; }
+  .bi-btn { padding: 7px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.76rem; font-weight: 700; font-family: 'Mulish', sans-serif; transition: opacity 0.15s; }
+  .bi-btn:hover { opacity: 0.8; }
+  .bi-btn--confirm { background: var(--green); color:#fff; }
+  .bi-btn--cancel  { background: var(--red);   color:#fff; }
+  .bi-status { font-size: 0.73rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .status--confirmed { background: rgba(76,172,110,0.15); color: var(--green); }
+  .status--cancelled { background: rgba(201,76,76,0.12); color: var(--red); }
+  .no-bookings { color: var(--muted); font-size: 0.88rem; text-align: center; padding: 12px 0; }
+
+  #adminLogin { padding: 40px 24px; }
+  #adminLogin h2 { font-family: 'Unbounded', sans-serif; color: var(--gold); font-size: 1rem; margin-bottom: 24px; text-align: center; }
+  #adminLogin input { width:100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; color: var(--text); font-size: 1rem; font-family: 'Mulish', sans-serif; outline: none; margin-bottom: 12px; }
+  #loginError { color: var(--red); font-size: 0.82rem; margin-bottom: 8px; min-height: 18px; }
+  .admin-input { width:100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: 'Mulish', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+  .admin-input:focus { border-color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BARBER<span>shop</span></div>
+  <button class="admin-btn" onclick="openAdmin()">⚙ Админ</button>
+</header>
+
+<div id="vacationBanner">
+  <div class="vac-title">✈️ Парикмахерская временно не работает</div>
+  <div class="vac-sub" id="vacText">Скоро вернёмся!</div>
+</div>
+
+<main>
+  <div class="page-title">Запись на стрижку</div>
+  <div class="page-sub">Выберите свободное время — мастер подтвердит запись</div>
+
+  <div class="day-tabs">
+    <div class="day-tab active" id="tab0" onclick="switchDay(0)">
+      <div class="day-tab__label">Сегодня</div>
+      <div class="day-tab__date" id="tabDate0">—</div>
+    </div>
+    <div class="day-tab" id="tab1" onclick="switchDay(1)">
+      <div class="day-tab__label">Завтра</div>
+      <div class="day-tab__date" id="tabDate1">—</div>
+    </div>
+  </div>
+
+  <div class="slots-grid" id="slotsGrid"></div>
+
+  <div id="bookingSection">
+    <div class="form-title">📋 Запись на <span id="selectedTimeLabel"></span></div>
+    <div class="form-group">
+      <label>Ваше имя</label>
+      <input type="text" id="clientName" placeholder="Иван">
+    </div>
+    <div class="form-group">
+      <label>Номер телефона</label>
+      <div class="phone-row">
+        <div class="country-select-wrap">
+          <div class="country-trigger" onclick="toggleCountryDrop()">
+            <span class="flag" id="selFlag">🇦🇲</span>
+            <span class="code" id="selCode">+374</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="country-dropdown" id="countryDropdown">
+            <input class="country-search" id="countrySearch" placeholder="Поиск страны..." oninput="filterCountries(this.value)" onclick="event.stopPropagation()">
+            <div class="country-list" id="countryList"></div>
+          </div>
+        </div>
+        <input type="text" class="phone-input" id="clientPhone" placeholder="77 123456">
+      </div>
+    </div>
+    <button class="submit-btn" onclick="submitBooking()">Записаться</button>
+    <span class="cancel-link" onclick="cancelSelection()">Отменить выбор</span>
+  </div>
+
+  <div id="successMsg">
+    <div class="s-icon">✅</div>
+    <div class="s-title">Заявка отправлена!</div>
+    <div class="s-sub">Мастер получил уведомление и скоро подтвердит запись.</div>
+  </div>
+
+  <div id="notifCard">
+    <div class="notif-row">
+      <div class="notif-icon">🔔</div>
+      <div class="notif-text">
+        <h4>Хотите узнать результат?</h4>
+        <p>Разрешите уведомления — когда мастер примет или отклонит запись, придёт сообщение.</p>
+      </div>
+    </div>
+    <div class="notif-btns">
+      <button class="notif-allow" onclick="requestNotifPermission()">🔔 Разрешить</button>
+      <button class="notif-deny" onclick="denyNotif()">Не сейчас</button>
+    </div>
+    <div class="notif-warn" id="notifWarn">⚠️ Без уведомлений — результат придётся проверять вручную на сайте.</div>
+  </div>
+</main>
+
+<div class="pub-contacts">
+  <div class="pub-contacts-inner">
+    <div class="contacts-label">СВЯЗАТЬСЯ С МАСТЕРОМ</div>
+    <div class="contact-row">
+      <a class="contact-link" id="pubEmailLink" href="#">
+        <span class="contact-icon">📧</span>
+        <div style="min-width:0">
+          <div class="contact-info-sub">Gmail</div>
+          <div class="contact-info-val" id="pubEmailText">—</div>
+        </div>
+      </a>
+      <button class="copy-btn" id="copyEmailBtn" onclick="copyContact('email')">Копировать</button>
+    </div>
+    <div class="contact-row">
+      <a class="contact-link" id="pubPhoneLink" href="#">
+        <span class="contact-icon">📞</span>
+        <div style="min-width:0">
+          <div class="contact-info-sub">Телефон</div>
+          <div class="contact-info-val" id="pubPhoneText">—</div>
+        </div>
+      </a>
+      <button class="copy-btn" id="copyPhoneBtn" onclick="copyContact('phone')">Копировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin -->
+<div id="adminOverlay">
+  <div id="adminLogin">
+    <h2>🔐 Вход в админ-панель</h2>
+    <input type="password" id="adminPassInput" placeholder="Пароль" onkeydown="if(event.key==='Enter')tryLogin()">
+    <div id="loginError"></div>
+    <button class="submit-btn" onclick="tryLogin()">Войти</button>
+    <span class="cancel-link" onclick="closeAdmin()">Закрыть</span>
+  </div>
+
+  <div class="admin-panel" id="adminPanel" style="display:none">
+    <div class="admin-header">
+      <h2>⚙️ Управление</h2>
+      <button class="close-admin" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="admin-body">
+
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;">
+          <div style="font-size:0.65rem;color:var(--muted);letter-spacing:0.08em;margin-bottom:4px;">ВРЕМЯ ЕРЕВАНА</div>
+          <div id="adminClock" style="font-family:'Unbounded',sans-serif;font-size:1.1rem;color:var(--gold);">--:--:--</div>
+        </div>
+        <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;">
+          <div style="font-size:0.65rem;color:var(--muted);letter-spacing:0.08em;margin-bottom:4px;">СБРОС ЧЕРЕЗ</div>
+          <div id="adminCountdown" style="font-family:'Unbounded',sans-serif;font-size:1.1rem;color:var(--text);">--:--:--</div>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <h3>✈️ РЕЖИМ ОТПУСКА</h3>
+        <div class="toggle-row">
+          <span>Парикмахерская закрыта</span>
+          <button class="toggle" id="vacToggle" onclick="toggleVacation()"></button>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <input type="text" class="admin-input" id="vacMsg" placeholder="Сообщение клиентам..." style="flex:1;">
+          <button class="submit-btn" style="width:auto;padding:10px 14px;font-size:0.78rem;margin:0;" onclick="saveVacMsg()">OK</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <h3>🚫 БЛОКИРОВКА ВРЕМЕНИ</h3>
+        <div class="admin-day-tabs">
+          <div class="admin-day-tab active" id="adminBlockTab0" onclick="switchAdminBlockDay(0)">Сегодня · <span id="adminBlockDate0"></span></div>
+          <div class="admin-day-tab" id="adminBlockTab1" onclick="switchAdminBlockDay(1)">Завтра · <span id="adminBlockDate1"></span></div>
+        </div>
+        <div class="block-grid" id="blockGrid"></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>📋 ЗАПИСИ</h3>
+        <div class="admin-day-tabs">
+          <div class="admin-day-tab active" id="adminBookTab0" onclick="switchAdminBookDay(0)">Сегодня · <span id="adminBookDate0"></span></div>
+          <div class="admin-day-tab" id="adminBookTab1" onclick="switchAdminBookDay(1)">Завтра · <span id="adminBookDate1"></span></div>
+        </div>
+        <div id="bookingsList"></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>📬 КОНТАКТЫ МАСТЕРА</h3>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase;">📧 Gmail</label>
+          <input type="text" class="admin-input" id="editEmail" placeholder="uncle@gmail.com">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase;">📞 Телефон</label>
+          <input type="text" class="admin-input" id="editPhone" placeholder="+374 77 123 456">
+        </div>
+        <button class="submit-btn" onclick="saveContacts()" style="margin:0;">💾 Сохранить контакты</button>
+        <div id="contactsSaved" style="display:none;text-align:center;color:var(--green);font-size:0.82rem;margin-top:10px;">✓ Контакты обновлены и видны клиентам</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── COUNTRIES ─────────────────────────────────────────
+const COUNTRIES = [
+  {flag:'🇦🇲',name:'Армения',code:'+374'},{flag:'🇷🇺',name:'Россия',code:'+7'},
+  {flag:'🇺🇸',name:'США',code:'+1'},{flag:'🇬🇧',name:'Великобритания',code:'+44'},
+  {flag:'🇩🇪',name:'Германия',code:'+49'},{flag:'🇫🇷',name:'Франция',code:'+33'},
+  {flag:'🇮🇹',name:'Италия',code:'+39'},{flag:'🇪🇸',name:'Испания',code:'+34'},
+  {flag:'🇵🇱',name:'Польша',code:'+48'},{flag:'🇺🇦',name:'Украина',code:'+380'},
+  {flag:'🇧🇾',name:'Беларусь',code:'+375'},{flag:'🇰🇿',name:'Казахстан',code:'+7'},
+  {flag:'🇬🇪',name:'Грузия',code:'+995'},{flag:'🇦🇿',name:'Азербайджан',code:'+994'},
+  {flag:'🇹🇷',name:'Турция',code:'+90'},{flag:'🇮🇷',name:'Иран',code:'+98'},
+  {flag:'🇦🇪',name:'ОАЭ',code:'+971'},{flag:'🇸🇦',name:'Саудовская Аравия',code:'+966'},
+  {flag:'🇮🇱',name:'Израиль',code:'+972'},{flag:'🇨🇳',name:'Китай',code:'+86'},
+  {flag:'🇯🇵',name:'Япония',code:'+81'},{flag:'🇰🇷',name:'Корея',code:'+82'},
+  {flag:'🇮🇳',name:'Индия',code:'+91'},{flag:'🇧🇷',name:'Бразилия',code:'+55'},
+  {flag:'🇲🇽',name:'Мексика',code:'+52'},{flag:'🇨🇦',name:'Канада',code:'+1'},
+  {flag:'🇦🇺',name:'Австралия',code:'+61'},{flag:'🇳🇱',name:'Нидерланды',code:'+31'},
+  {flag:'🇧🇪',name:'Бельгия',code:'+32'},{flag:'🇨🇭',name:'Швейцария',code:'+41'},
+  {flag:'🇦🇹',name:'Австрия',code:'+43'},{flag:'🇸🇪',name:'Швеция',code:'+46'},
+  {flag:'🇳🇴',name:'Норвегия',code:'+47'},{flag:'🇩🇰',name:'Дания',code:'+45'},
+  {flag:'🇫🇮',name:'Финляндия',code:'+358'},{flag:'🇵🇹',name:'Португалия',code:'+351'},
+  {flag:'🇬🇷',name:'Греция',code:'+30'},{flag:'🇷🇴',name:'Румыния',code:'+40'},
+  {flag:'🇨🇿',name:'Чехия',code:'+420'},{flag:'🇭🇺',name:'Венгрия',code:'+36'},
+  {flag:'🇧🇬',name:'Болгария',code:'+359'},{flag:'🇭🇷',name:'Хорватия',code:'+385'},
+  {flag:'🇷🇸',name:'Сербия',code:'+381'},{flag:'🇲🇩',name:'Молдова',code:'+373'},
+  {flag:'🇱🇹',name:'Литва',code:'+370'},{flag:'🇱🇻',name:'Латвия',code:'+371'},
+  {flag:'🇪🇪',name:'Эстония',code:'+372'},{flag:'🇺🇿',name:'Узбекистан',code:'+998'},
+  {flag:'🇰🇬',name:'Кыргызстан',code:'+996'},{flag:'🇹🇯',name:'Таджикистан',code:'+992'},
+  {flag:'🇵🇰',name:'Пакистан',code:'+92'},{flag:'🇧🇩',name:'Бангладеш',code:'+880'},
+  {flag:'🇻🇳',name:'Вьетнам',code:'+84'},{flag:'🇹🇭',name:'Таиланд',code:'+66'},
+  {flag:'🇮🇩',name:'Индонезия',code:'+62'},{flag:'🇵🇭',name:'Филиппины',code:'+63'},
+  {flag:'🇲🇾',name:'Малайзия',code:'+60'},{flag:'🇸🇬',name:'Сингапур',code:'+65'},
+  {flag:'🇪🇬',name:'Египет',code:'+20'},{flag:'🇿🇦',name:'ЮАР',code:'+27'},
+  {flag:'🇦🇷',name:'Аргентина',code:'+54'},{flag:'🇨🇱',name:'Чили',code:'+56'},
+];
+let selectedCountry = COUNTRIES[0];
+
+function buildCountryList(filter='') {
+  const list = document.getElementById('countryList');
+  const items = filter ? COUNTRIES.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || c.code.includes(filter)) : COUNTRIES;
+  list.innerHTML = items.map(c => `<div class="country-item" onclick="selectCountry(${COUNTRIES.indexOf(c)})"><span class="ci-flag">${c.flag}</span><span class="ci-name">${c.name}</span><span class="ci-code">${c.code}</span></div>`).join('');
+}
+function filterCountries(v) { buildCountryList(v); }
+function selectCountry(idx) {
+  selectedCountry = COUNTRIES[idx];
+  document.getElementById('selFlag').textContent = selectedCountry.flag;
+  document.getElementById('selCode').textContent = selectedCountry.code;
+  closeCountryDrop();
+}
+function toggleCountryDrop() {
+  const dd = document.getElementById('countryDropdown');
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open')) { buildCountryList(); document.getElementById('countrySearch').value=''; document.getElementById('countrySearch').focus(); }
+}
+function closeCountryDrop() { document.getElementById('countryDropdown').classList.remove('open'); }
+document.addEventListener('click', e => { if (!e.target.closest('.country-select-wrap')) closeCountryDrop(); });
+
+// ─── YEREVAN TIME ──────────────────────────────────────
+function getYerevanTime() {
+  const now = new Date();
+  return new Date(now.getTime() + now.getTimezoneOffset()*60000 + 4*3600000);
+}
+function fmtDate(d) { return d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }
+
+// ─── STATE ─────────────────────────────────────────────
+const ADMIN_PASS = '1234';
+const START = 9, END = 22, STEP = 30;
+
+function makeSlots() {
+  const s = []; let h=START, m=0;
+  while (h<END||(h===END&&m===0)) {
+    s.push({id:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, booked:false, blocked:false, booking:null});
+    m+=STEP; if(m>=60){h++;m-=60;}
+  }
+  return s;
+}
+
+let state = {
+  days: [makeSlots(), makeSlots()],
+  activeDay: 0,
+  adminBlockDay: 0,
+  adminBookDay: 0,
+  vacation: false,
+  vacMsg: 'Скоро вернёмся!',
+  selected: null,
+  contacts: { email:'', phone:'' },
+  notifEnabled: false,
+};
+
+// ─── DATES ─────────────────────────────────────────────
+function initDates() {
+  const t = getYerevanTime();
+  const tom = new Date(t); tom.setDate(tom.getDate()+1);
+  document.getElementById('tabDate0').textContent = fmtDate(t);
+  document.getElementById('tabDate1').textContent = fmtDate(tom);
+  document.getElementById('adminBlockDate0').textContent = fmtDate(t);
+  document.getElementById('adminBlockDate1').textContent = fmtDate(tom);
+  document.getElementById('adminBookDate0').textContent  = fmtDate(t);
+  document.getElementById('adminBookDate1').textContent  = fmtDate(tom);
+}
+
+// ─── TABS ──────────────────────────────────────────────
+function switchDay(d) {
+  state.activeDay = d; state.selected = null;
+  document.getElementById('bookingSection').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'none';
+  document.getElementById('notifCard').style.display = 'none';
+  [0,1].forEach(i => document.getElementById('tab'+i).classList.toggle('active', i===d));
+  renderSlots();
+}
+function switchAdminBlockDay(d) {
+  state.adminBlockDay = d;
+  [0,1].forEach(i => document.getElementById('adminBlockTab'+i).classList.toggle('active', i===d));
+  renderBlockGrid();
+}
+function switchAdminBookDay(d) {
+  state.adminBookDay = d;
+  [0,1].forEach(i => document.getElementById('adminBookTab'+i).classList.toggle('active', i===d));
+  renderBookingsList();
+}
+
+// ─── RENDER SLOTS ──────────────────────────────────────
+function renderSlots() {
+  const grid = document.getElementById('slotsGrid');
+  grid.innerHTML = '';
+  state.days[state.activeDay].forEach(slot => {
+    const div = document.createElement('div');
+    div.className = 'slot';
+    if (slot.blocked) div.classList.add('slot--blocked');
+    else if (slot.booked) div.classList.add('slot--booked');
+    else if (state.selected && state.selected.day===state.activeDay && state.selected.id===slot.id) div.classList.add('slot--selected');
+    const st = slot.blocked?'blocked':(slot.booked?'booked':'free');
+    const lb = slot.blocked?'закрыто':(slot.booked?'занято':'свободно');
+    div.innerHTML = `<span class="slot__time">${slot.id}</span><span class="slot__badge badge--${st}">${lb}</span>`;
+    if (!slot.booked && !slot.blocked) div.onclick = () => selectSlot(state.activeDay, slot.id);
+    grid.appendChild(div);
+  });
+}
+
+function selectSlot(day, id) {
+  if (state.vacation) return;
+  state.selected = {day, id};
+  const dl = day===0?'сегодня':'завтра';
+  document.getElementById('selectedTimeLabel').textContent = `${id} (${dl})`;
+  document.getElementById('bookingSection').style.display = 'block';
+  document.getElementById('successMsg').style.display = 'none';
+  document.getElementById('notifCard').style.display = 'none';
+  document.getElementById('clientName').value = '';
+  document.getElementById('clientPhone').value = '';
+  renderSlots();
+  setTimeout(() => document.getElementById('bookingSection').scrollIntoView({behavior:'smooth',block:'center'}), 50);
+}
+function cancelSelection() {
+  state.selected = null;
+  document.getElementById('bookingSection').style.display = 'none';
+  renderSlots();
+}
+
+// ─── SUBMIT ────────────────────────────────────────────
+function submitBooking() {
+  const name = document.getElementById('clientName').value.trim();
+  const phone = document.getElementById('clientPhone').value.trim();
+  if (!name||!phone) { alert('Заполните имя и телефон'); return; }
+  const {day, id} = state.selected;
+  const slot = state.days[day].find(s=>s.id===id);
+  if (!slot) return;
+  slot.booked = true;
+  slot.booking = {name, phone:selectedCountry.code+' '+phone, status:'pending'};
+  state.selected = null;
+  document.getElementById('bookingSection').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'block';
+  renderSlots();
+  setTimeout(() => {
+    document.getElementById('notifCard').style.display = 'block';
+    document.getElementById('notifCard').scrollIntoView({behavior:'smooth',block:'center'});
+  }, 400);
+}
+
+// ─── NOTIFICATIONS ─────────────────────────────────────
+function requestNotifPermission() {
+  if (!('Notification' in window)) { alert('Браузер не поддерживает уведомления'); hideNotifCard(); return; }
+  Notification.requestPermission().then(p => {
+    if (p==='granted') {
+      state.notifEnabled = true; hideNotifCard();
+      new Notification('Барбершоп 💈', {body:'✅ Уведомления включены! Сообщим о результате.'});
+    } else { showNotifWarn(); }
+  });
+}
+function denyNotif() { showNotifWarn(); }
+function showNotifWarn() { document.getElementById('notifWarn').style.display='block'; setTimeout(hideNotifCard, 4000); }
+function hideNotifCard() { document.getElementById('notifCard').style.display='none'; document.getElementById('notifWarn').style.display='none'; }
+
+function sendPush(id, dayLabel, accepted) {
+  if (!state.notifEnabled || !('Notification' in window) || Notification.permission!=='granted') return;
+  if (accepted) {
+    new Notification('✅ Запись подтверждена!', {body:`Мастер ждёт вас ${dayLabel} в ${id}. До встречи! 💈`});
+  } else {
+    new Notification('❌ Запись отклонена', {body:`Время ${id} (${dayLabel}) недоступно. Можете выбрать другое.`});
+  }
+}
+
+// ─── DAILY RESET ───────────────────────────────────────
+function resetDay() {
+  state.days = [state.days[1], makeSlots()];
+  state.selected = null; state.notifEnabled = false;
+  document.getElementById('bookingSection').style.display='none';
+  document.getElementById('successMsg').style.display='none';
+  document.getElementById('notifCard').style.display='none';
+  initDates(); renderSlots();
+  if (document.getElementById('adminPanel').style.display!=='none') { renderBlockGrid(); renderBookingsList(); }
+}
+
+// ─── CLOCKS ────────────────────────────────────────────
+function tickClocks() {
+  const t = getYerevanTime();
+  const hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0'), ss=String(t.getSeconds()).padStart(2,'0');
+  const c = document.getElementById('adminClock'); if(c) c.textContent=`${hh}:${mm}:${ss}`;
+  const mid = new Date(t); mid.setHours(24,0,0,0);
+  const diff = mid-t;
+  const dh=String(Math.floor(diff/3600000)).padStart(2,'0'), dm=String(Math.floor((diff%3600000)/60000)).padStart(2,'0'), ds=String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+  const cd = document.getElementById('adminCountdown'); if(cd) cd.textContent=`${dh}:${dm}:${ds}`;
+  if(diff<1000) setTimeout(resetDay,1000);
+}
+setInterval(tickClocks,1000); tickClocks();
+
+// ─── VACATION ──────────────────────────────────────────
+function toggleVacation() {
+  state.vacation = !state.vacation;
+  document.getElementById('vacToggle').classList.toggle('on', state.vacation);
+  document.getElementById('vacationBanner').style.display = state.vacation?'block':'none';
+}
+function saveVacMsg() {
+  const msg = document.getElementById('vacMsg').value.trim();
+  if(msg){ state.vacMsg=msg; document.getElementById('vacText').textContent=msg; }
+}
+
+// ─── BLOCK GRID ────────────────────────────────────────
+function renderBlockGrid() {
+  const grid = document.getElementById('blockGrid'); grid.innerHTML='';
+  state.days[state.adminBlockDay].forEach(slot => {
+    const div = document.createElement('div');
+    div.className='block-slot'+(slot.blocked?' blocked':'');
+    div.textContent=slot.id;
+    div.onclick=()=>{ if(!slot.booked){slot.blocked=!slot.blocked;renderBlockGrid();renderSlots();}else alert('Нельзя — время уже занято!'); };
+    grid.appendChild(div);
+  });
+}
+
+// ─── BOOKINGS LIST ─────────────────────────────────────
+function renderBookingsList() {
+  const list = document.getElementById('bookingsList');
+  const di = state.adminBookDay;
+  const dl = di===0?'Сегодня':'Завтра';
+  const booked = state.days[di].filter(s=>s.booked);
+  if (!booked.length) { list.innerHTML='<div class="no-bookings">Записей пока нет</div>'; return; }
+  list.innerHTML = booked.map(slot => {
+    const b=slot.booking; const ip=b.status==='pending';
+    return `<div class="booking-item ${b.status==='confirmed'?'confirmed':b.status==='cancelled'?'cancelled':''}">
+      <div class="bi-info">
+        <div class="bi-day">${dl}</div>
+        <div class="bi-time">${slot.id}</div>
+        <div class="bi-name">${b.name}</div>
+        <div class="bi-phone">${b.phone}</div>
+      </div>
+      ${ip?`<div class="bi-actions">
+        <button class="bi-btn bi-btn--confirm" onclick="confirmBooking(${di},'${slot.id}')">✓ Принять</button>
+        <button class="bi-btn bi-btn--cancel" onclick="cancelBooking(${di},'${slot.id}')">✕ Отказать</button>
+      </div>`:`<span class="bi-status ${b.status==='confirmed'?'status--confirmed':'status--cancelled'}">${b.status==='confirmed'?'✓ Принято':'✕ Отказано'}</span>`}
+    </div>`;
+  }).join('');
+}
+
+function confirmBooking(di,id) {
+  const slot=state.days[di].find(s=>s.id===id); if(!slot) return;
+  slot.booking.status='confirmed';
+  sendPush(id, di===0?'сегодня':'завтра', true);
+  renderBookingsList(); renderSlots();
+}
+function cancelBooking(di,id) {
+  const slot=state.days[di].find(s=>s.id===id); if(!slot) return;
+  slot.booking.status='cancelled'; slot.booked=false;
+  sendPush(id, di===0?'сегодня':'завтра', false);
+  renderBookingsList(); renderSlots();
+}
+
+// ─── CONTACTS ──────────────────────────────────────────
+function saveContacts() {
+  state.contacts.email = document.getElementById('editEmail').value.trim();
+  state.contacts.phone = document.getElementById('editPhone').value.trim();
+  renderPublicContacts();
+  const s=document.getElementById('contactsSaved'); s.style.display='block'; setTimeout(()=>s.style.display='none',3000);
+}
+function renderPublicContacts() {
+  const {email,phone}=state.contacts;
+  document.getElementById('pubEmailText').textContent = email||'—';
+  document.getElementById('pubPhoneText').textContent = phone||'—';
+  document.getElementById('pubEmailLink').href = email?`mailto:${email}`:'#';
+  document.getElementById('pubPhoneLink').href = phone?`tel:${phone.replace(/\s/g,'')}`:'#';
+}
+function copyContact(type) {
+  const val = type==='email'?state.contacts.email:state.contacts.phone;
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(()=>{
+    const btn=document.getElementById(type==='email'?'copyEmailBtn':'copyPhoneBtn');
+    btn.textContent='✓ Скопировано'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Копировать'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── ADMIN LOGIN ───────────────────────────────────────
+let adminLoggedIn = false;
+function openAdmin() {
+  document.getElementById('adminOverlay').style.display='block';
+  if (!adminLoggedIn) {
+    document.getElementById('adminLogin').style.display='block';
+    document.getElementById('adminPanel').style.display='none';
+    document.getElementById('adminPassInput').value='';
+    document.getElementById('loginError').textContent='';
+    setTimeout(()=>document.getElementById('adminPassInput').focus(),100);
+  } else showAdminPanel();
+}
+function tryLogin() {
+  if (document.getElementById('adminPassInput').value===ADMIN_PASS) { adminLoggedIn=true; showAdminPanel(); }
+  else document.getElementById('loginError').textContent='Неверный пароль';
+}
+function showAdminPanel() {
+  document.getElementById('adminLogin').style.display='none';
+  document.getElementById('adminPanel').style.display='block';
+  document.getElementById('vacToggle').classList.toggle('on',state.vacation);
+  document.getElementById('vacMsg').value=state.vacMsg;
+  document.getElementById('editEmail').value=state.contacts.email;
+  document.getElementById('editPhone').value=state.contacts.phone;
+  renderBlockGrid(); renderBookingsList();
+}
+function closeAdmin() { document.getElementById('adminOverlay').style.display='none'; }
+document.getElementById('adminOverlay').addEventListener('click',e=>{ if(e.target===document.getElementById('adminOverlay')) closeAdmin(); });
+
+// ─── INIT ──────────────────────────────────────────────
+buildCountryList();
+initDates();
+renderSlots();
+renderPublicContacts();
+</script>
+</body>
+</html>
